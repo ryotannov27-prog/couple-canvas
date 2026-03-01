@@ -64,20 +64,24 @@ async function saveDrawing() {
   });
 }
 
-onSnapshot(doc(db, "canvas", "shared"), (snapshot) => {
-  if (snapshot.exists()) {
+onSnapshot(doc(db, "canvas", "shared"), (docSnap) => {
+  const data = docSnap.data();
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  if (data && data.image) {
     const img = new Image();
-    img.src = snapshot.data().image;
+    img.src = data.image;
     img.onload = () => {
-      ctx.clearRect(0,0,canvas.width,canvas.height);
-      ctx.drawImage(img,0,0);
+      ctx.drawImage(img, 0, 0);
     };
   }
 });
 
 function clearCanvas() {
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  saveDrawing();
+  setDoc(doc(db, "canvas", "shared"), {
+    image: null
+  });
 }
 </script>
 
