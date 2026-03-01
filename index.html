@@ -66,9 +66,10 @@ async function saveDrawing() {
 
 onSnapshot(doc(db, "canvas", "shared"), (docSnap) => {
   const data = docSnap.data();
+
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  if (data && data.image) {
+  if (data && data.image && data.image !== "") {
     const img = new Image();
     img.src = data.image;
     img.onload = () => {
@@ -80,8 +81,8 @@ onSnapshot(doc(db, "canvas", "shared"), (docSnap) => {
 function clearCanvas() {
   ctx.clearRect(0,0,canvas.width,canvas.height);
   setDoc(doc(db, "canvas", "shared"), {
-    image: null
-  });
+    image: ""
+  }, { merge: false });
 }
 </script>
 
