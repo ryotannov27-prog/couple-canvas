@@ -18,17 +18,16 @@ button { margin:10px; padding:10px; }
 <button onclick="clearCanvas()">Clear</button>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, setDoc, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDBotWG-0IhjSEjV64bBxKUKWHyp8nOZHM",
-  authDomain: "coupleboard-c8503.firebaseapp.com",
-  projectId: "coupleboard-c8503",
-  storageBucket: "coupleboard-c8503.firebasestorage.app",
-  messagingSenderId: "833596379920",
-  appId: "1:833596379920:web:7920359a63a020af688b95",
-  measurementId: "G-TBR7Y6NJRW"
+  apiKey: "あなたのAPIキー",
+  authDomain: "あなたのauthDomain",
+  projectId: "あなたのprojectId",
+  storageBucket: "あなたのstorageBucket",
+  messagingSenderId: "あなたのmessagingSenderId",
+  appId: "あなたのappId"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -37,47 +36,70 @@ const db = getFirestore(app);
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-ctx.lineWidth = 3;
-ctx.lineCap = "round";
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight - 60;
 
 let drawing = false;
 
-canvas.addEventListener("pointerdown", e => {
-  drawing = true;
-  ctx.beginPath();
-  ctx.moveTo(e.offsetX, e.offsetY);
-});
-
-canvas.addEventListener("pointermove", e => {
-  if (!drawing) return;
-  ctx.lineTo(e.offsetX, e.offsetY);
-  ctx.stroke();
+canvas.addEventListener("mousedown", () => drawing = true);
+canvas.addEventListener("mouseup", () => {
+  drawing = false;
   saveDrawing();
 });
+canvas.addEventListener("mousemove", draw);
 
-canvas.addEventListener("pointerup", () => drawing = false);
-canvas.addEventListener("pointerleave", () => drawing = false);
+canvas.addEventListener("touchstart", () => drawing = true);
+canvas.addEventListener("touchend", () => {
+  drawing = false;
+  saveDrawing();
+});
+canvas.addEventListener("touchmove", draw);
 
-async function saveDrawing() {
-  await setDoc(doc(db, "canvas", "shared"), {
-    image: canvas.toDataURL()
-  });
+function draw(e) {
+  if (!drawing) return;
+
+  e.preventDefault();
+
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+  const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+
+  ctx.lineWidth = 3;
+  ctx.lineCap = "round";
+  ctx.strokeStyle = "black";
+
+  ctx.lineTo(x, y);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x, y);
 }
 
-onSnapshot(doc(db, "canvas", "shared"), (docSnap) => {
-  const data = docSnap.data();
+async function saveDrawing() {
+  const image = canvas.toDataURL();
+  await setDoc(doc(db, "canvas", "shared"), { image });
+}
 
+function clearCanvas() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  deleteDoc(doc(db, "canvas", "shared"));
+}
+
+window.clearCanvas = clearCanvas;
+
+onSnapshot(doc(db, "canvas", "shared"), (docSnap) => {
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  if (data && data.image && data.image !== "") {
-    const img = new Image();
-    img.src = data.image;
-    img.onload = () => {
-      ctx.drawImage(img, 0, 0);
-    };
+  if (docSnap.exists()) {
+    const data = docSnap.data();
+    if (data.image) {
+      const img = new Image();
+      img.src = data.image;
+      img.onload = () => {
+        ctx.drawImage(img, 0, 0);
+      };
+    }
   }
 });
-
 function clearCanvas() {
   ctx.clearRect(0,0,canvas.width,canvas.height);
   setDoc(doc(db, "canvas", "shared"), {
