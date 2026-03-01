@@ -1,33 +1,44 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>Couple Canvas 💛</title>
-
-<style>
-body { margin:0; text-align:center; font-family:sans-serif; }
-canvas { border:1px solid #ccc; touch-action:none; }
-button { margin:10px; padding:10px; }
-</style>
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Couple Canvas</title>
+  <style>
+    body { margin:0; overflow:hidden; }
+    #toolbar {
+      position:fixed; bottom:0; left:0; right:0;
+      height:60px; background:#fff; display:flex;
+      justify-content:center; align-items:center;
+      box-shadow:0 -2px 8px rgba(0,0,0,0.1);
+    }
+    button {
+      padding:10px 20px; font-size:16px;
+      border:none; border-radius:8px;
+      background:#ff6b81; color:#fff;
+    }
+  </style>
 </head>
 <body>
 
-<h2>Couple Canvas 💛</h2>
-<canvas id="canvas" width="350" height="500"></canvas><br>
-<button onclick="clearCanvas()">Clear</button>
+<canvas id="canvas"></canvas>
+
+<div id="toolbar">
+  <button onclick="clearCanvas()">Clear</button>
+</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, doc, setDoc, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "あなたのAPIキー",
-  authDomain: "あなたのauthDomain",
-  projectId: "あなたのprojectId",
-  storageBucket: "あなたのstorageBucket",
-  messagingSenderId: "あなたのmessagingSenderId",
-  appId: "あなたのappId"
+  apiKey: "AIzaSyDBotWG-0IhjSEjV64bBxKUKWHyp8nOZHM",
+  authDomain: "coupleboard-c8503.firebaseapp.com",
+  projectId: "coupleboard-c8503",
+  storageBucket: "coupleboard-c8503.firebasestorage.app",
+  messagingSenderId: "833596379920",
+  appId: "1:833596379920:web:7920359a63a020af688b95",
+  measurementId: "G-TBR7Y6NJRW"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -36,28 +47,37 @@ const db = getFirestore(app);
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight - 60;
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight - 60;
+}
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
 
 let drawing = false;
 
-canvas.addEventListener("mousedown", () => drawing = true);
-canvas.addEventListener("mouseup", () => {
-  drawing = false;
-  saveDrawing();
-});
+canvas.addEventListener("mousedown", startDraw);
+canvas.addEventListener("mouseup", endDraw);
 canvas.addEventListener("mousemove", draw);
 
-canvas.addEventListener("touchstart", () => drawing = true);
-canvas.addEventListener("touchend", () => {
+canvas.addEventListener("touchstart", startDraw);
+canvas.addEventListener("touchend", endDraw);
+canvas.addEventListener("touchmove", draw, { passive:false });
+
+function startDraw(e){
+  drawing = true;
+  ctx.beginPath();
+}
+
+function endDraw(){
+  if(!drawing) return;
   drawing = false;
+  ctx.beginPath();
   saveDrawing();
-});
-canvas.addEventListener("touchmove", draw);
+}
 
-function draw(e) {
-  if (!drawing) return;
-
+function draw(e){
+  if(!drawing) return;
   e.preventDefault();
 
   const rect = canvas.getBoundingClientRect();
@@ -70,43 +90,34 @@ function draw(e) {
 
   ctx.lineTo(x, y);
   ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(x, y);
 }
 
-async function saveDrawing() {
+async function saveDrawing(){
   const image = canvas.toDataURL();
   await setDoc(doc(db, "canvas", "shared"), { image });
 }
 
-function clearCanvas() {
+function clearCanvas(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
   deleteDoc(doc(db, "canvas", "shared"));
 }
 
 window.clearCanvas = clearCanvas;
 
-onSnapshot(doc(db, "canvas", "shared"), (docSnap) => {
+onSnapshot(doc(db, "canvas", "shared"), (snap)=>{
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  if (docSnap.exists()) {
-    const data = docSnap.data();
-    if (data.image) {
-      const img = new Image();
-      img.src = data.image;
-      img.onload = () => {
-        ctx.drawImage(img, 0, 0);
-      };
-    }
-  }
+  if(!snap.exists()) return;
+
+  const data = snap.data();
+  if(!data || !data.image) return;
+
+  const img = new Image();
+  img.src = data.image;
+  img.onload = ()=>{
+    ctx.drawImage(img,0,0);
+  };
 });
-function clearCanvas() {
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  setDoc(doc(db, "canvas", "shared"), {
-    image: ""
-  }, { merge: false });
-}
-  window.clearCanvas = clearCanvas;
 </script>
 
 </body>
